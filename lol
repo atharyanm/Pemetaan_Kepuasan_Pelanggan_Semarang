@@ -92,43 +92,33 @@
         function loadPage(page) {
             switch(page) {
                 case 'dashboard':
-                    $('#main-content').load('pages/dashboard.php', function() {
-                        document.title = 'Dashboard';
-                    });
+                    $('#main-content').load('pages/dashboard.php');
                     break;
                 case 'peta':
-                    $('#main-content').load('pages/peta.php', function() {
-                        document.title = 'Peta Kepuasan';
-                    });
+                    $('#main-content').load('pages/peta.php');
                     break;
                 case 'puskesmas':
-                    $('#main-content').load('pages/puskesmas.php', function() {
-                        document.title = 'Data Puskesmas';
-                    });
+                    $('#main-content').load('pages/puskesmas.php');
                     break;
                 case 'kepuasan':
-                    $('#main-content').load('pages/kepuasan.php', function() {
-                        document.title = 'Data Kepuasan';
-                    });
+                    $('#main-content').load('pages/kepuasan.php');
                     break;
                 default:
-                    $('#main-content').load('pages/dashboard.php', function() {
-                        document.title = 'Dashboard';
-                    });
+                    $('#main-content').load('pages/dashboard.php');
             }
         }
-        
+
         $(document).ready(function() {
             // Load dashboard by default
             loadPage('dashboard');
-        
+
             // Handle menu clicks
             $('.nav-link').click(function(e) {
                 if (!$(this).attr('href').startsWith('logout')) {
                     e.preventDefault();
                     $('.nav-link').removeClass('active');
                     $(this).addClass('active');
-        
+
                     const page = $(this).data('page');
                     $('#page-title').text($(this).find('p').text());
                     loadPage(page);
