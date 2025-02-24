@@ -1,3 +1,11 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: index.php");
+    exit();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,13 +19,13 @@
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
         <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light">
             <ul class="navbar-nav">
                 <li class="nav-item">
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
                 </li>
             </ul>
-        </nav>
+        </nav> -->
 
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -53,6 +61,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="#" class="nav-link" data-page="info">
+                                <i class="nav-icon fas fa-info"></i>
+                                <p>Tentang Kami</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="logout.php" class="nav-link">
                                 <i class="nav-icon fas fa-sign-out-alt"></i>
                                 <p>Logout</p>
@@ -79,6 +93,13 @@
                 <div class="container-fluid">
                     <div id="main-content">
                         <!-- Content will be loaded here -->
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <p class="text-center text-muted">
+                                &copy; 2025 Sistem Informasi Geografis Kepuasan Pelanggan Puskesmas Kota Semarang
+                            </p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -109,6 +130,11 @@
                 case 'kepuasan':
                     $('#main-content').load('pages/kepuasan.php', function() {
                         document.title = 'Data Kepuasan';
+                    });
+                    break;
+                case 'info':
+                    $('#main-content').load('pages/info.php', function() {
+                        document.title = 'Tentang Kami';
                     });
                     break;
                 default:
