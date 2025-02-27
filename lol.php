@@ -3,7 +3,7 @@ require_once 'koneksi.php';  // Add this line to include the class definition
 
 $db = new DatabaseConnection();
 $puskesmasData = $db->getPuskesmasData();
-$kepuasanData = $db->getKepuasanByKecamatan();
+$kepuasanData = $db->getKecamatanData();
 
 echo "<pre>";
 print_r($puskesmasData);

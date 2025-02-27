@@ -8,142 +8,161 @@ if (!isset($_SESSION['username'])) {
 require_once '../koneksi.php';
 $db = new DatabaseConnection();
 $puskesmasData = $db->getPuskesmasData();
+$kecamatanData = $db->getKecamatanData(); // Pastikan fungsi ini tersedia
 ?>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta Kepuasan Puskesmas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .popup-content {
+            padding: 5px;
+            text-align: center;
+        }
+        .popup-content h5 {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        .popup-content p {
+            margin: 2px 0;
+        }
+        #map { height: 600px; }
+    </style>
+</head>
+<body>
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Peta Kepuasan Puskesmas</h3>
     </div>
     <div class="card-body">
-        <div id="map" style="height: 600px;"></div>
+        <div id="map"></div>
     </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-(function() {
-    // Initialize map when document is ready
-    $(document).ready(function() {
-        initializeMap();
+$(document).ready(function() {
+    initializeMap();
+});
+
+function initializeMap() {
+    window.map = L.map('map').setView([-6.966667, 110.416664], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(window.map);
+    
+    const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
+    const kecamatanData = <?php echo json_encode($kecamatanData); ?>;
+    
+    window.map.on('zoomend', function() {
+        updateLayerByZoom();
     });
+    
+    showKecamatanLayer();
+}
 
-    function initializeMap() {
-        // Remove existing map instance if exists
-        if (window.map) {
-            window.map.remove();
-            window.map = null;
+function getColor(satisfaction) {
+    return satisfaction > 90 ? '#006837' :
+           satisfaction > 80 ? '#1a9850' :
+           satisfaction > 70 ? '#66bd63' :
+           satisfaction > 60 ? '#fd8d3c' :
+                             '#d73027';
+}
+
+function clearMap() {
+    window.map.eachLayer((layer) => {
+        if (!(layer instanceof L.TileLayer)) {
+            window.map.removeLayer(layer);
         }
+    });
+}
 
-        // Create new map instance
-        window.map = L.map('map').setView([-6.966667, 110.416664], 12);
-        
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(window.map);
-
-        // Get data from PHP
-        const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
-
-        // Add zoom handler
-        window.map.on('zoomend', function() {
-            updateLayerByZoom();
-        });
-
-        // Show initial layer
-        showKecamatanLayer();
-    }
-
-    // Utility functions
-    function getColor(satisfaction) {
-        return satisfaction > 90 ? '#006837' :
-               satisfaction > 80 ? '#1a9850' :
-               satisfaction > 70 ? '#66bd63' :
-               satisfaction > 60 ? '#fd8d3c' :
-                                 '#d73027';
-    }
-
-    function clearMap() {
-        window.map.eachLayer((layer) => {
-            if (!(layer instanceof L.TileLayer)) {
-                window.map.removeLayer(layer);
-            }
-        });
-    }
-
-
-    // Modified calculateAverages to use dynamic data
-    function calculateAverages() {
-        const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
-        
-        // Calculate Kelurahan averages
-        const kelurahanAverages = {};
-        const kelurahanCounts = {};
-        
-        puskesmasData.forEach(puskesmas => {
-            if (!kelurahanAverages[puskesmas.kelurahan]) {
-                kelurahanAverages[puskesmas.kelurahan] = 0;
-                kelurahanCounts[puskesmas.kelurahan] = 0;
-            }
-            kelurahanAverages[puskesmas.kelurahan] += parseFloat(puskesmas.satisfaction);
-            kelurahanCounts[puskesmas.kelurahan]++;
-        });
-
-        const kelurahanSatisfaction = {};
-        for (let kel in kelurahanAverages) {
-            kelurahanSatisfaction[kel] = Math.round(kelurahanAverages[kel] / kelurahanCounts[kel]);
+function calculateAverages() {
+    const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
+    const kecamatanSatisfaction = {};
+    const kecamatanCounts = {};
+    
+    puskesmasData.forEach(puskesmas => {
+        if (!kecamatanSatisfaction[puskesmas.kecamatan]) {
+            kecamatanSatisfaction[puskesmas.kecamatan] = 0;
+            kecamatanCounts[puskesmas.kecamatan] = 0;
         }
-
-        // Calculate Kecamatan averages
-        const kecamatanAverages = {};
-        const kecamatanCounts = {};
-        
-        puskesmasData.forEach(puskesmas => {
-            if (!kecamatanAverages[puskesmas.kecamatan]) {
-                kecamatanAverages[puskesmas.kecamatan] = 0;
-                kecamatanCounts[puskesmas.kecamatan] = 0;
-            }
-            kecamatanAverages[puskesmas.kecamatan] += parseFloat(puskesmas.satisfaction);
-            kecamatanCounts[puskesmas.kecamatan]++;
-        });
-
-        const kecamatanSatisfaction = {};
-        for (let kec in kecamatanAverages) {
-            kecamatanSatisfaction[kec] = Math.round(kecamatanAverages[kec] / kecamatanCounts[kec]);
-        }
-
-        return { kelurahanSatisfaction, kecamatanSatisfaction };
+        kecamatanSatisfaction[puskesmas.kecamatan] += parseFloat(puskesmas.satisfaction);
+        kecamatanCounts[puskesmas.kecamatan]++;
+    });
+    
+    for (let kec in kecamatanSatisfaction) {
+        kecamatanSatisfaction[kec] = Math.round(kecamatanSatisfaction[kec] / kecamatanCounts[kec]);
     }
+    
+    return { kecamatanSatisfaction };
+}
 
-    // Modified marker display function
-    function showPuskesmasMarkers() {
-        clearMap();
-        const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
-        
-        puskesmasData.forEach(puskesmas => {
+function showKecamatanLayer() {
+    clearMap();
+    const { kecamatanSatisfaction } = calculateAverages();
+    const kecamatanData = <?php echo json_encode($kecamatanData); ?>;
+    
+    L.geoJSON(kecamatanData, {
+        style: function(feature) {
+            const satisfaction = kecamatanSatisfaction[feature.properties.name] || 0;
+            return {
+                fillColor: getColor(satisfaction),
+                weight: 2,
+                opacity: 1,
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        },
+        onEachFeature: function(feature, layer) {
+            const satisfaction = kecamatanSatisfaction[feature.properties.name] || 0;
+            layer.bindPopup(`
+                <div class="popup-content">
+                    <h5>Kecamatan ${feature.properties.name}</h5>
+                    <p>Rata-rata Kepuasan: ${satisfaction}%</p>
+                </div>
+            `);
+        }
+    }).addTo(window.map);
+}
+
+function showPuskesmasMarkers() {
+    clearMap();
+    const puskesmasData = <?php echo json_encode($puskesmasData); ?>;
+    
+    puskesmasData.forEach(puskesmas => {
+        if (Array.isArray(puskesmas.coords) && puskesmas.coords.length === 2) {
             L.marker(puskesmas.coords)
                 .bindPopup(`
                     <div class="popup-content">
                         <h5>${puskesmas.name}</h5>
                         <p>Tingkat Kepuasan: ${puskesmas.satisfaction}%</p>
                         <p>Kecamatan: ${puskesmas.kecamatan}</p>
-                        <p>Kelurahan: ${puskesmas.kelurahan}</p>
                     </div>
                 `).addTo(window.map);
-        });
-    }
-})();
-</script>
+        } else {
+            console.warn('Invalid coordinates for:', puskesmas);
+        }
+    });
+}
 
-<style>
-.popup-content {
-    padding: 5px;
-    text-align: center;
+function updateLayerByZoom() {
+    const zoom = window.map.getZoom();
+    if (zoom < 13) {
+        showKecamatanLayer();
+    } else {
+        showPuskesmasMarkers();
+    }
 }
-.popup-content h5 {
-    margin: 0 0 5px 0;
-    font-weight: bold;
-}
-.popup-content p {
-    margin: 2px 0;
-}
-</style>
+
+console.log('Puskesmas Data:', <?php echo json_encode($puskesmasData); ?>);
+console.log('Kecamatan Data:', <?php echo json_encode($kecamatanData); ?>);
+</script>
+</body>
+</html>

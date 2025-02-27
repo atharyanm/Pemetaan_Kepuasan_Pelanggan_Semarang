@@ -1,0 +1,20 @@
+.progress-bar {
+    line-height: 25px;
+    font-weight: bold;
+}
+
+.kecamatan-group {
+    transition: all 0.3s ease;
+}
+
+.kecamatan-group:hover {
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.fas, .far {
+    margin-right: 5px;
+}

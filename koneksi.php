@@ -106,9 +106,20 @@ class DatabaseConnection {
         return $puskesmasData;
     }
 
-    public function getKepuasanByKecamatan() {
+    public function getKecamatanData() {
         if (!$this->data) {
             $this->fetchData();
+        }
+
+        try {
+            $geojsonPath = __DIR__ . '/file.geojson';
+            if (!file_exists($geojsonPath)) {
+                throw new Exception("GeoJSON file not found");
+            }
+            return json_decode(file_get_contents($geojsonPath), true);
+        } catch (Exception $e) {
+            error_log("Error loading GeoJSON: " . $e->getMessage());
+            return null;
         }
 
         $kecamatanData = [];
