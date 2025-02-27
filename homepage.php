@@ -15,21 +15,34 @@ if (!isset($_SESSION['username'])) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-locatecontrol/dist/L.Control.Locate.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-minimap/dist/Control.MiniMap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-geosearch/dist/geosearch.min.css">
+    
 </head>
+
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
-        <!-- Navbar -->
-        <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <ul class="navbar-nav">
+        <!-- //Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav ml-3">
                 <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                        <i class="fas fa-bars"></i>
+                    </a>
                 </li>
             </ul>
-        </nav> -->
+        </nav>
 
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <a href="#" class="brand-link">
+                <i class="fas fa-chart-pie fa-fw ml-3 mr-2"></i>
                 <span class="brand-text font-weight-light">Pemetaan Kepuasan</span>
             </a>
 
@@ -109,6 +122,17 @@ if (!isset($_SESSION['username'])) {
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-locatecontrol/dist/L.Control.Locate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-minimap/dist/Control.MiniMap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-geosearch/dist/geosearch.min.js"></script>
+    
     <script>
         function loadPage(page) {
             switch(page) {
@@ -150,11 +174,28 @@ if (!isset($_SESSION['username'])) {
         
             // Handle menu clicks
             $('.nav-link').click(function(e) {
-                if (!$(this).attr('href').startsWith('logout')) {
-                    e.preventDefault();
+                e.preventDefault();
+
+                if ($(this).attr('href') === 'logout.php') {
+                    // Show logout confirmation
+                    Swal.fire({
+                        title: 'Konfirmasi Logout',
+                        text: "Apakah Anda yakin ingin keluar?",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Ya, Logout!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = 'logout.php';
+                        }
+                    });
+                } else {
                     $('.nav-link').removeClass('active');
                     $(this).addClass('active');
-        
+            
                     const page = $(this).data('page');
                     $('#page-title').text($(this).find('p').text());
                     loadPage(page);

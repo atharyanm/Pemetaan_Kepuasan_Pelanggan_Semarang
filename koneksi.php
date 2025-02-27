@@ -110,18 +110,7 @@ class DatabaseConnection {
         if (!$this->data) {
             $this->fetchData();
         }
-
-        try {
-            $geojsonPath = __DIR__ . '/file.geojson';
-            if (!file_exists($geojsonPath)) {
-                throw new Exception("GeoJSON file not found");
-            }
-            return json_decode(file_get_contents($geojsonPath), true);
-        } catch (Exception $e) {
-            error_log("Error loading GeoJSON: " . $e->getMessage());
-            return null;
-        }
-
+    
         $kecamatanData = [];
         foreach ($this->data as $row) {
             if (isset($row['kecamatan'], $row['tingkat_kepuasan'], $row['jumlah_responden'])) {
@@ -138,7 +127,7 @@ class DatabaseConnection {
                 $kecamatanData[$kecamatan]['responden'] += intval($row['jumlah_responden']);
             }
         }
-
+    
         $results = [];
         foreach ($kecamatanData as $kecamatan => $data) {
             if ($data['count'] > 0) {
@@ -149,7 +138,24 @@ class DatabaseConnection {
                 ];
             }
         }
+    
+        // Tambahkan pemrosesan GeoJSON di bagian terakhir
+        try {
+            $geojsonPath = __DIR__ . '/file.geojson';
+            if (!file_exists($geojsonPath)) {
+                throw new Exception("GeoJSON file not found");
+            }
+            $geojsonData = json_decode(file_get_contents($geojsonPath), true);
+            return [
+                'data_kecamatan' => $results,
+                'geojson' => $geojsonData
+            ];
+        } catch (Exception $e) {
+            error_log("Error loading GeoJSON: " . $e->getMessage());
+        }
+    
         return $results;
     }
+    
 }
 ?>
