@@ -24,64 +24,95 @@ if (!isset($_SESSION['username'])) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-minimap/dist/Control.MiniMap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-geosearch/dist/geosearch.min.css">
     
+    <style>
+        .main-sidebar {
+            background: #0d6efd;
+            padding-top: 0;
+        }
+
+        .brand-link {
+            background: #0b5ed7;
+            color: white !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+            padding: 1rem 0.5rem;
+        }
+
+        .brand-link:hover {
+            background: #0a58ca;
+        }
+
+        .nav-sidebar .nav-item .nav-link {
+            color: rgba(255,255,255,0.9);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-sidebar .nav-item .nav-link:hover,
+        .nav-sidebar .nav-item .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-sidebar .nav-link i {
+            margin-right: 0.5rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .content-wrapper {
+            background: #f4f6f9;
+        }
+    </style>
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">
-    <div class="wrapper">
-        <!-- //Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <ul class="navbar-nav ml-3">
-                <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button">
-                        <i class="fas fa-bars"></i>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- Main Sidebar Container -->
-        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+<div class="wrapper">
+        <!-- Main Sidebar -->
+        <aside class="main-sidebar elevation-4">
+            <!-- Brand Logo -->
             <a href="#" class="brand-link">
                 <i class="fas fa-chart-pie fa-fw ml-3 mr-2"></i>
                 <span class="brand-text font-weight-light">Pemetaan Kepuasan</span>
             </a>
 
+            <!-- Sidebar -->
             <div class="sidebar">
+                <!-- Sidebar Menu -->
                 <nav class="mt-2">
-                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                    <ul class="nav nav-pills nav-sidebar flex-column">
                         <li class="nav-item">
-                            <a href="#" class="nav-link active" data-page="dashboard">
-                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <a class="nav-link active" data-page="dashboard" href="#">
+                                <i class="fas fa-tachometer-alt"></i>
                                 <p>Dashboard</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="peta">
-                                <i class="nav-icon fas fa-map"></i>
+                            <a class="nav-link" data-page="peta" href="#">
+                                <i class="fas fa-map"></i>
                                 <p>Peta Kepuasan</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="puskesmas">
-                                <i class="nav-icon fas fa-hospital"></i>
+                            <a class="nav-link" data-page="puskesmas" href="#">
+                                <i class="fas fa-hospital-alt"></i>  <!-- Changed to a better hospital icon -->
                                 <p>Data Puskesmas</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="kepuasan">
-                                <i class="nav-icon fas fa-chart-bar"></i>
+                            <a class="nav-link" data-page="kepuasan" href="#">
+                                <i class="fas fa-chart-line"></i>  <!-- Changed to a better chart icon -->
                                 <p>Data Kepuasan</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-page="info">
-                                <i class="nav-icon fas fa-info"></i>
+                            <a class="nav-link" data-page="info" href="#">
+                                <i class="fas fa-info"></i>
                                 <p>Tentang Kami</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="logout.php" class="nav-link">
-                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                        <li class="nav-item mt-auto">
+                            <a class="nav-link" href="logout.php">
+                                <i class="fas fa-sign-out-alt"></i>
                                 <p>Logout</p>
                             </a>
                         </li>
@@ -132,6 +163,7 @@ if (!isset($_SESSION['username'])) {
     <script src="https://cdn.jsdelivr.net/npm/leaflet-locatecontrol/dist/L.Control.Locate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet-minimap/dist/Control.MiniMap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet-geosearch/dist/geosearch.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         function loadPage(page) {

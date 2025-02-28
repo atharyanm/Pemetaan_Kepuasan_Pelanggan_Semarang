@@ -29,55 +29,235 @@ if(isset($_POST['submit'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/animate-css/animate.css/animate.min.css">
-</head>
-<body class="d-flex align-items-center justify-content-center vh-100" style="background: linear-gradient(135deg, #1976d2, #064789);">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card glassmorphism p-4 shadow-lg animate__animated animate__fadeInUp">
-                    <div class="row">
-                        <div class="col-md-6 d-flex align-items-center justify-content-center flex-column text-center bg-light p-4 rounded-start">
-                            <img src="foto/logoDinkes.jpg" alt="Logo" class="mb-3" style="width: 100px;">
-                            <h4 class="text-primary fw-bold">SIG Kepuasan Pelanggan</h4>
-                            <p class="text-muted">Sistem Informasi Geografis Puskesmas</p>
-                            <div id="minimap" class="w-100 rounded shadow-sm" style="height: 350px;"></div>
-                            <div class="mt-3 text-start">
-                                <h5 class="text-primary">Dinas Kesehatan Kota Semarang</h5>
-                                <p class="mb-1"><i class="fas fa-map-marker-alt me-2"></i>Jl. Pandanaran No.79, Mugassari</p>
-                                <p class="mb-1"><i class="fas fa-phone me-2"></i>(024) 8318070</p>
-                                <p class="mb-1"><i class="fas fa-envelope me-2"></i>dinkes@semarangkota.go.id</p>
-                                <p class="mb-0"><i class="fas fa-globe me-2"></i>dinkes.semarangkota.go.id</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6 p-4 d-flex flex-column justify-content-center">
-                            <h3 class="text-center text-primary fw-bold animate__animated animate__fadeIn">Login</h3>
-                            <?php if(isset($error)): ?>
-                                <div class="alert alert-danger mt-3 animate__animated animate__shakeX">
-                                    <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                                </div>
-                            <?php endif; ?>
-                            <form method="POST" action="" class="mt-3 animate__animated animate__fadeInUp">
-                                <div class="mb-3 input-group">
-                                    <span class="input-group-text bg-primary text-white"><i class="fas fa-user"></i></span>
-                                    <input type="text" class="form-control" placeholder="Username" name="username" required>
-                                </div>
-                                <div class="mb-3 input-group">
-                                    <span class="input-group-text bg-primary text-white"><i class="fas fa-lock"></i></span>
-                                    <input type="password" class="form-control" id="password" placeholder="Password" name="password" required>
-                                    <button type="button" class="input-group-text bg-secondary text-white" onclick="togglePassword()">
-                                        <i class="fas fa-eye" id="toggleIcon"></i>
-                                    </button>
-                                </div>
-                                <button type="submit" name="submit" class="btn btn-primary w-100 fw-bold shadow-sm animate__animated animate__pulse animate__infinite">
-                                    <i class="fas fa-sign-in-alt me-2"></i> Masuk
-                                </button>
-                            </form>
-                        </div>
+
+    <style>
+        /* Base styles */
+        body {
+            overflow: hidden;
+        }
+
+        /* Welcome section styles */
+        .welcome-section {
+            position: absolute;
+            left: 5%;
+            top: 42%;
+            transform: translateY(-50%);
+            color: white;
+            max-width: 500px;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+            line-height: 1.2;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .welcome-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1.2rem;
+        }
+
+        /* Stats styles */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Login card styles */
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            width: 320px;
+            margin-right: 3.5rem;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-header img {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            padding: 3px;
+            border: 2px solid #dc3545;
+            margin-bottom: 0.8rem;
+        }
+
+        .form-floating {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-floating input {
+            border-radius: 8px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border: none;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .contact-info {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-info p {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .contact-info i {
+            color: #dc3545;
+            width: 20px;
+        }
+
+        /* Alert styles */
+        .alert {
+            border-radius: 8px;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Password toggle button */
+        .btn-link {
+            color: #6c757d;
+            text-decoration: none;
+        }
+
+        .btn-link:hover {
+            color: #dc3545;
+        }
+    </style>
+
+<!-- Update body background gradient -->
+<body class="d-flex align-items-center justify-content-end vh-100" style="
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.4), rgba(165, 20, 31, 0.4)), 
+    url('foto/dkk.jpg') no-repeat center center fixed; 
+    background-size: cover;">
+    
+    <!-- Add Brand Overlay -->
+    <div class="welcome-section animate__animated animate__fadeInLeft">
+        <h1 class="welcome-title">Selamat Datang di<br>Portal Kepuasan Puskesmas</h1>
+        
+        <p class="welcome-text">
+            Sistem Informasi Geografis untuk memantau dan mengevaluasi tingkat kepuasan pelayanan 
+            di seluruh Puskesmas Kota Semarang.
+        </p>
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number">37</div>
+                <div class="stat-label">Puskesmas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">16</div>
+                <div class="stat-label">Kecamatan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1.6jt+</div>
+                <div class="stat-label">Penduduk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Pelayanan</div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container-fluid">
+    <div class="row justify-content-end">
+        <div class="col-auto">
+            <div class="login-card animate__animated animate__fadeInRight">
+                <div class="login-header">
+                    <img src="foto/logoDinkes.jpg" alt="Logo Dinkes" class="animate__animated animate__pulse animate__infinite">
+                    <h4 class="text-primary mb-1">Selamat Datang</h4>
+                    <p class="text-muted small">Silakan masuk untuk melanjutkan</p>
+                </div>
+
+                <?php if(isset($error)): ?>
+                    <div class="alert alert-danger animate__animated animate__shakeX">
+                        <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
                     </div>
+                <?php endif; ?>
+
+                <form method="POST" action="">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                        <label for="username"><i class="fas fa-user text-primary"></i> Username</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                        <label for="password"><i class="fas fa-lock text-primary"></i> Password</label>
+                        <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted pe-3" 
+                                onclick="togglePassword()" style="z-index: 5;">
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                    <button type="submit" name="submit" class="btn btn-login btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i> Masuk
+                    </button>
+                </form>
+
+                <div class="contact-info text-center">
+                    <p><i class="fas fa-map-marker-alt me-2"></i>Jl. Pandanaran No.79, Mugassari</p>
+                    <p><i class="fas fa-phone me-2"></i>(024) 8318070</p>
+                    <p><i class="fas fa-globe me-2"></i>dinkes.semarangkota.go.id</p>
                 </div>
             </div>
         </div>
     </div>
+</div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
