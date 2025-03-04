@@ -1,35 +1,48 @@
 <?php
 session_start();
-require_once '../koneksi.php';
+if (!isset($_SESSION['username'])) {
+    header("Location: ../index.php");
+    exit();
+}
 
-// Initialize database connection
+require_once '../koneksi.php';
 $db = new DatabaseConnection();
 $puskesmasData = $db->getPuskesmasData();
 
-// Process data for visualization
-$kecamatanData = [];
-foreach ($puskesmasData as $puskesmas) {
-    $kecamatan = $puskesmas['kecamatan'];
-    if (!isset($kecamatanData[$kecamatan])) {
-        $kecamatanData[$kecamatan] = [
+// Process data for charts
+$kecamatanStats = [];
+$satisfactionRanges = [
+    'Sangat Puas (90-100%)' => ['count' => 0, 'range' => [90, 100], 'color' => '#0d6efd'],
+    'Puas (80-89%)' => ['count' => 0, 'range' => [80, 89.99], 'color' => '#0dcaf0'],
+    'Cukup (70-79%)' => ['count' => 0, 'range' => [70, 79.99], 'color' => '#20c997'],
+    'Kurang (60-69%)' => ['count' => 0, 'range' => [60, 69.99], 'color' => '#ffc107'],
+    'Sangat Kurang (<60%)' => ['count' => 0, 'range' => [0, 59.99], 'color' => '#adb5bd']
+];
+
+foreach ($puskesmasData as $data) {
+    if (!isset($kecamatanStats[$data['kecamatan']])) {
+        $kecamatanStats[$data['kecamatan']] = [
             'total' => 0,
             'count' => 0,
-            'responden' => 0,
             'puskesmas' => []
         ];
     }
     
-    $kecamatanData[$kecamatan]['total'] += $puskesmas['satisfaction'];
-    $kecamatanData[$kecamatan]['count']++;
-    $kecamatanData[$kecamatan]['responden'] += $puskesmas['jumlah_responden'];
-    $kecamatanData[$kecamatan]['puskesmas'][] = $puskesmas;
-}
+    $kecamatanStats[$data['kecamatan']]['total'] += $data['satisfaction'];
+    $kecamatanStats[$data['kecamatan']]['count']++;
+    $kecamatanStats[$data['kecamatan']]['puskesmas'][] = [
+        'name' => $data['name'],
+        'satisfaction' => $data['satisfaction'],
+        'responden' => $data['jumlah_responden']
+    ];
 
-// Prepare data for Chart.js
-$chartLabels = array_keys($kecamatanData);
-$chartData = array_map(function($data) {
-    return round($data['total'] / $data['count'], 1);
-}, array_values($kecamatanData));
+    foreach ($satisfactionRanges as $level => &$info) {
+        if ($data['satisfaction'] >= $info['range'][0] && 
+            $data['satisfaction'] <= $info['range'][1]) {
+            $info['count']++;
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -37,183 +50,253 @@ $chartData = array_map(function($data) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisasi Kepuasan - SIG Puskesmas</title>
-    
+    <title>Diagram Kepuasan - SIG Kepuasan Pelanggan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        .chart-container { 
-            position: relative;
-            height: 400px; 
-            margin-bottom: 2rem; 
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 400px;
         }
-        .chart-type-btn {
+
+        .filter-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-chart-type {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            background: #e9ecef;
+            color: #495057;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
-        .chart-type-btn.active {
-            background-color: #0d6efd;
+
+        .btn-chart-type:hover {
+            background: #0d6efd;
             color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-chart-type.active {
+            background: #0d6efd;
+            color: white;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid p-4">
+    <div class="container-fluid">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Dashboard Kepuasan Puskesmas</h5>
+                <h3 class="card-title mb-0">Visualisasi Data Kepuasan</h3>
             </div>
             <div class="card-body">
-                <!-- Chart Type Selector -->
-                <div class="btn-group mb-4" role="group">
-                    <button type="button" class="btn btn-outline-primary chart-type-btn active" data-type="satisfaction">
-                        <i class="fas fa-smile"></i> Kepuasan
-                    </button>
-                    <button type="button" class="btn btn-outline-primary chart-type-btn" data-type="respondents">
-                        <i class="fas fa-users"></i> Responden
-                    </button>
-                    <button type="button" class="btn btn-outline-primary chart-type-btn" data-type="puskesmas">
-                        <i class="fas fa-hospital"></i> Puskesmas
-                    </button>
-                </div>
-
-                <!-- Chart Container -->
-                <div class="chart-container">
-                    <canvas id="dashboardChart"></canvas>
-                </div>
-
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="text-center d-none">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                <div class="filter-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn-chart-type active" data-type="doughnut">
+                                <i class="fas fa-chart-pie"></i> Tingkat Kepuasan
+                            </button>
+                            <button class="btn-chart-type" data-type="bar">
+                                <i class="fas fa-chart-bar"></i> Per Kecamatan
+                            </button>
+                            <button class="btn-chart-type" data-type="line">
+                                <i class="fas fa-chart-line"></i> Tren Kepuasan
+                            </button>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="animationToggle" checked>
+                            <label class="form-check-label" for="animationToggle">Animasi</label>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Error Message -->
-                <div id="errorMessage" class="alert alert-danger d-none"></div>
+                
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-        let currentChart = null;
-        const chartData = {
-            satisfaction: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert data to array and ensure numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return floatval($data['count'] > 0 ? round($data['total'] / $data['count'], 1) : 0);
-                }, $kecamatanData)); ?>),
-                title: 'Tingkat Kepuasan per Kecamatan (%)'
-            },
-            respondents: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert to array of numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return intval($data['responden']);
-                }, $kecamatanData)); ?>),
-                title: 'Jumlah Responden per Kecamatan'
-            },
-            puskesmas: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert to array of numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return intval($data['count']);
-                }, $kecamatanData)); ?>),
-                title: 'Jumlah Puskesmas per Kecamatan'
-            }
-        };
-
-        // Add debug logging
-        console.log('Chart Data:', chartData);
-
-        function getColorForValue(value) {
-            if (value >= 80) return 'rgba(40, 167, 69, 0.8)';
-            if (value >= 60) return 'rgba(255, 193, 7, 0.8)';
-            return 'rgba(220, 53, 69, 0.8)';
+    const chartData = {
+        satisfaction: {
+            labels: <?= json_encode(array_keys($satisfactionRanges)) ?>,
+            datasets: [{
+                data: <?= json_encode(array_column($satisfactionRanges, 'count')) ?>,
+                backgroundColor: <?= json_encode(array_column($satisfactionRanges, 'color')) ?>,
+                borderWidth: 2
+            }]
+        },
+        kecamatan: {
+            labels: <?= json_encode(array_keys($kecamatanStats)) ?>,
+            datasets: [{
+                label: 'Rata-rata Kepuasan (%)',
+                data: <?= json_encode(array_map(function($stat) {
+                    return round($stat['total'] / $stat['count'], 2);
+                }, $kecamatanStats)) ?>,
+                backgroundColor: '#0d6efd',
+                borderColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        trend: {
+            labels: <?= json_encode(array_keys($kecamatanStats)) ?>,
+            datasets: [{
+                label: 'Tingkat Kepuasan (%)',
+                data: <?= json_encode(array_map(function($stat) {
+                    return round($stat['total'] / $stat['count'], 2);
+                }, $kecamatanStats)) ?>,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
         }
+    };
 
-        function createChart(type) {
-            try {
-                const ctx = document.getElementById('dashboardChart').getContext('2d');
-                const data = chartData[type];
-
-                // Validate data
-                if (!Array.isArray(data.data)) {
-                    console.error('Invalid data format:', data);
-                    throw new Error('Data is not an array');
-                }
-
-                if (currentChart) {
-                    currentChart.destroy();
-                }
-
-                // Create background colors array
-                const backgroundColor = type === 'satisfaction' 
-                    ? data.data.map(value => getColorForValue(value))
-                    : Array(data.data.length).fill('rgba(13, 110, 253, 0.8)');
-
-                currentChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: data.title,
-                            data: data.data,
-                            backgroundColor: backgroundColor,
-                            borderWidth: 1
-                        }]
+    const chartOptions = {
+        doughnut: {
+            type: 'doughnut',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return type === 'satisfaction' ? value + '%' : value;
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: data.title
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw * 100) / total).toFixed(1);
+                                return `${context.raw} Puskesmas (${percentage}%)`;
                             }
                         }
                     }
-                });
-            } catch (error) {
-                console.error('Chart creation error:', error);
-                document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('errorMessage').classList.remove('d-none');
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 2000
+                }
+            }
+        },
+        bar: {
+            type: 'bar',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        },
+        line: {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Tingkat Kepuasan (%)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Kecamatan'
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                }
             }
         }
+    };
 
-        // Initialize with satisfaction chart
-        createChart('satisfaction');
+    let currentChart = new Chart(
+        document.getElementById('mainChart'),
+        {
+            type: 'doughnut',
+            data: chartData.satisfaction,
+            options: chartOptions.doughnut.options
+        }
+    );
 
-        // Handle chart type buttons
-        document.querySelectorAll('.chart-type-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.chart-type-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-                createChart(this.dataset.type);
-            });
+    document.querySelectorAll('.btn-chart-type').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.btn-chart-type').forEach(btn => 
+                btn.classList.remove('active')
+            );
+            this.classList.add('active');
+            
+            const chartType = this.dataset.type;
+            updateChart(chartType);
         });
+    });
+
+    function updateChart(type) {
+        const animate = document.getElementById('animationToggle').checked;
+        currentChart.destroy();
+        
+        const chartConfig = {
+            type: type,
+            data: type === 'doughnut' ? chartData.satisfaction : 
+                  type === 'bar' ? chartData.kecamatan : chartData.trend,
+            options: {
+                ...chartOptions[type].options,
+                animation: {
+                    duration: animate ? chartOptions[type].options.animation.duration : 0
+                }
+            }
+        };
+        
+        currentChart = new Chart(document.getElementById('mainChart'), chartConfig);
+    }
+
+    window.addEventListener('resize', () => {
+        if (currentChart) {
+            currentChart.resize();
+        }
     });
     </script>
 </body>
