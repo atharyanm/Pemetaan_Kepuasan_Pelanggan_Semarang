@@ -139,22 +139,36 @@ class DatabaseConnection {
             }
         }
     
-        // Tambahkan pemrosesan GeoJSON di bagian terakhir
-        try {
-            $geojsonPath = __DIR__ . '/file.geojson';
-            if (!file_exists($geojsonPath)) {
-                throw new Exception("GeoJSON file not found");
-            }
-            $geojsonData = json_decode(file_get_contents($geojsonPath), true);
-            return [
-                'data_kecamatan' => $results,
-                'geojson' => $geojsonData
-            ];
-        } catch (Exception $e) {
-            error_log("Error loading GeoJSON: " . $e->getMessage());
+        return $results; // Return average satisfaction per kecamatan
+    }
+
+    public function getPuskesmasLayerData() {
+        if (!$this->data) {
+            $this->fetchData();
         }
     
-        return $results;
+        $puskesmasLayerData = [];
+        foreach ($this->data as $row) {
+            if (isset($row['nama_puskesmas'], $row['latitude'], $row['longitude'], 
+                     $row['tingkat_kepuasan'], $row['kecamatan'], $row['kelurahan'],
+                     $row['tanggal_update'], $row['jumlah_responden'], $row['keterangan'])) {
+                
+                $puskesmasLayerData[] = [
+                    'name' => trim($row['nama_puskesmas']),
+                    'coords' => [
+                        floatval($row['latitude']),
+                        floatval($row['longitude'])
+                    ],
+                    'satisfaction' => floatval($row['tingkat_kepuasan']),
+                    'kecamatan' => trim($row['kecamatan']),
+                    'kelurahan' => trim($row['kelurahan']),
+                    'tanggal_update' => trim($row['tanggal_update']),
+                    'jumlah_responden' => intval($row['jumlah_responden']),
+                    'keterangan' => trim($row['keterangan'])
+                ];
+            }
+        }
+        return $puskesmasLayerData; // Return puskesmas data
     }
     
 }

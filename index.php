@@ -116,7 +116,7 @@ if(isset($_POST['submit'])) {
             height: 65px;
             border-radius: 50%;
             padding: 3px;
-            border: 2px solid #dc3545;
+            border: 2px solid #0d6efd;
             margin-bottom: 0.8rem;
         }
 
@@ -132,7 +132,7 @@ if(isset($_POST['submit'])) {
             width: 100%;
             padding: 0.8rem;
             border-radius: 8px;
-            background: linear-gradient(135deg, #dc3545, #c82333);
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
             border: none;
             font-weight: 600;
             letter-spacing: 0.5px;
@@ -141,7 +141,7 @@ if(isset($_POST['submit'])) {
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
         }
 
         .contact-info {
@@ -157,7 +157,7 @@ if(isset($_POST['submit'])) {
         }
 
         .contact-info i {
-            color: #dc3545;
+            color: #0d6efd;
             width: 20px;
         }
 
@@ -175,13 +175,13 @@ if(isset($_POST['submit'])) {
         }
 
         .btn-link:hover {
-            color: #dc3545;
+            color: #0d6efd;
         }
     </style>
 
 <!-- Update body background gradient -->
 <body class="d-flex align-items-center justify-content-end vh-100" style="
-    background: linear-gradient(135deg, rgba(220, 53, 69, 0.4), rgba(165, 20, 31, 0.4)), 
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.4), rgba(10, 88, 202, 0.4)), 
     url('foto/dkk.jpg') no-repeat center center fixed; 
     background-size: cover;">
     
@@ -189,14 +189,16 @@ if(isset($_POST['submit'])) {
     <div class="welcome-section animate__animated animate__fadeInLeft">
         <h1 class="welcome-title">Selamat Datang di<br>Portal Kepuasan Puskesmas</h1>
         
-        <p class="welcome-text">
-            Sistem Informasi Geografis untuk memantau dan mengevaluasi tingkat kepuasan pelayanan 
-            di seluruh Puskesmas Kota Semarang.
-        </p>
+        <div class="stat-card mb-3">
+            <p class="welcome-text">
+                Sistem Informasi Geografis untuk memantau dan mengevaluasi tingkat kepuasan pelayanan 
+                di seluruh Puskesmas Kota Semarang.
+            </p>
+        </div>
         
         <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-number">37</div>
+                <div class="stat-number">39</div>
                 <div class="stat-label">Puskesmas</div>
             </div>
             <div class="stat-card">

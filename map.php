@@ -1,220 +1,123 @@
-<?php
-session_start();
-require_once 'koneksi.php';
-
-// Initialize database connection
-$db = new DatabaseConnection();
-$puskesmasData = $db->getPuskesmasData();
-
-// Process data for visualization
-$kecamatanData = [];
-foreach ($puskesmasData as $puskesmas) {
-    $kecamatan = $puskesmas['kecamatan'];
-    if (!isset($kecamatanData[$kecamatan])) {
-        $kecamatanData[$kecamatan] = [
-            'total' => 0,
-            'count' => 0,
-            'responden' => 0,
-            'puskesmas' => []
-        ];
-    }
-    
-    $kecamatanData[$kecamatan]['total'] += $puskesmas['satisfaction'];
-    $kecamatanData[$kecamatan]['count']++;
-    $kecamatanData[$kecamatan]['responden'] += $puskesmas['jumlah_responden'];
-    $kecamatanData[$kecamatan]['puskesmas'][] = $puskesmas;
-}
-
-// Prepare data for Chart.js
-$chartLabels = array_keys($kecamatanData);
-$chartData = array_map(function($data) {
-    return round($data['total'] / $data['count'], 1);
-}, array_values($kecamatanData));
-?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisasi Kepuasan - SIG Puskesmas</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <title>Peta Puskesmas Kota Semarang</title>
     <style>
-        .chart-container { 
-            position: relative;
-            height: 400px; 
-            margin-bottom: 2rem; 
+        #map { 
+            height: calc(100vh - 100px); 
+            width: 100%; 
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .chart-type-btn {
-            transition: all 0.3s ease;
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .chart-type-btn.active {
-            background-color: #0d6efd;
-            color: white;
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
-    <div class="container-fluid p-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Dashboard Kepuasan Puskesmas</h5>
-            </div>
-            <div class="card-body">
-                <!-- Chart Type Selector -->
-                <div class="btn-group mb-4" role="group">
-                    <button type="button" class="btn btn-outline-primary chart-type-btn active" data-type="satisfaction">
-                        <i class="fas fa-smile"></i> Kepuasan
-                    </button>
-                    <button type="button" class="btn btn-outline-primary chart-type-btn" data-type="respondents">
-                        <i class="fas fa-users"></i> Responden
-                    </button>
-                    <button type="button" class="btn btn-outline-primary chart-type-btn" data-type="puskesmas">
-                        <i class="fas fa-hospital"></i> Puskesmas
-                    </button>
-                </div>
-
-                <!-- Chart Container -->
-                <div class="chart-container">
-                    <canvas id="dashboardChart"></canvas>
-                </div>
-
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="text-center d-none">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-
-                <!-- Error Message -->
-                <div id="errorMessage" class="alert alert-danger d-none"></div>
-            </div>
-        </div>
-    </div>
+    <div id="map"></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-        let currentChart = null;
-        const chartData = {
-            satisfaction: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert data to array and ensure numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return floatval($data['count'] > 0 ? round($data['total'] / $data['count'], 1) : 0);
-                }, $kecamatanData)); ?>),
-                title: 'Tingkat Kepuasan per Kecamatan (%)'
-            },
-            respondents: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert to array of numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return intval($data['responden']);
-                }, $kecamatanData)); ?>),
-                title: 'Jumlah Responden per Kecamatan'
-            },
-            puskesmas: {
-                labels: <?php echo json_encode(array_keys($kecamatanData)); ?>,
-                // Convert to array of numbers
-                data: Object.values(<?php echo json_encode(array_map(function($data) {
-                    return intval($data['count']);
-                }, $kecamatanData)); ?>),
-                title: 'Jumlah Puskesmas per Kecamatan'
+        // Data Puskesmas
+        const puskesmasData = [
+            { name: "Puskesmas Bandarharjo", lat: -6.9622, lng: 110.4215, kecamatan: "Semarang Utara", alamat: "Jl. Layur, Dadapsari" },
+            { name: "Puskesmas Banget Ayu", lat: -6.9832, lng: 110.4766, kecamatan: "Genuk", alamat: "Jl. Raya Bangetayu" },
+            { name: "Puskesmas Bugangan", lat: -6.9741, lng: 110.4402, kecamatan: "Semarang Timur", alamat: "Jl. Cilosari" },
+            { name: "Puskesmas Bulu Lor", lat: -7.0332, lng: 110.4421, kecamatan: "Semarang Utara", alamat: "Jl. Bonowati Selatan II" },
+            { name: "Puskesmas Candilama", lat: -7.0134, lng: 110.4318, kecamatan: "Candisari", alamat: "Jl. Dr. Wahidin 22" },
+            { name: "Puskesmas Gayamsari", lat: -6.9965, lng: 110.4492, kecamatan: "Gayamsari", alamat: "Jl. Slamet Riyadi 4A" },
+            { name: "Puskesmas Genuk", lat: -6.9666, lng: 110.4700, kecamatan: "Genuk", alamat: "Jl. Genuksari Raya" },
+            { name: "Puskesmas Gunung Pati", lat: -7.0940, lng: 110.3343, kecamatan: "Gunung Pati", alamat: "Jl. Mr. Wuryanto No.38" },
+            { name: "Puskesmas Halmahera", lat: -6.9948, lng: 110.4377, kecamatan: "Semarang Timur", alamat: "Jl. Halmahera Raya 38" },
+            { name: "Puskesmas Kagok", lat: -7.0086, lng: 110.4172, kecamatan: "Candisari", alamat: "Jl. Telomoyo 3" },
+            { name: "Puskesmas Karang Anyar", lat: -6.9710, lng: 110.3342, kecamatan: "Tugu", alamat: "Jl. Karang Anyar 29 E" },
+            { name: "Puskesmas Karang Ayu", lat: -6.9805, lng: 110.3928, kecamatan: "Semarang Barat", alamat: "Jl. Kencowungu III/28" },
+            { name: "Puskesmas Karang Doro", lat: -6.9731, lng: 110.4379, kecamatan: "Semarang Timur", alamat: "Jl. Raden Patah 178" },
+            { name: "Puskesmas Karang Malang", lat: -7.0946, lng: 110.3344, kecamatan: "Mijen", alamat: "Jl. RM. Soebagiono" },
+            { name: "Puskesmas Kedung Mundu", lat: -7.0246, lng: 110.4574, kecamatan: "Tembalang", alamat: "Jl. Sambiroto 1" },
+            { name: "Puskesmas Krobokan", lat: -6.9870, lng: 110.3914, kecamatan: "Semarang Barat", alamat: "Jl. Ari Buana I/XIII" },
+            { name: "Puskesmas Lamper Tengah", lat: -6.9980, lng: 110.4364, kecamatan: "Semarang Selatan", alamat: "Jl. Lamper Tengah Gg.XV" },
+            { name: "Puskesmas Lebdosari", lat: -6.9942, lng: 110.3797, kecamatan: "Semarang Barat", alamat: "Jl. Taman Lebdosari" },
+            { name: "Puskesmas Mangkang", lat: -6.9736, lng: 110.2976, kecamatan: "Tugu", alamat: "Jl. Jendral Oerip Soemoharjo KM 16" },
+            { name: "Puskesmas Manyaran", lat: -6.9875, lng: 110.4049, kecamatan: "Semarang Barat", alamat: "Jl. Abdulrahman Saleh 267" },
+            { name: "Puskesmas Mijen", lat: -7.0563, lng: 110.3141, kecamatan: "Mijen", alamat: "Jl. RM. Hadi Soebeno" },
+            { name: "Puskesmas Miroto", lat: -6.9745, lng: 110.3998, kecamatan: "Semarang Tengah", alamat: "Jl. Taman Seteran Barat No. 03" },
+            { name: "Puskesmas Ngaliyan", lat: -6.9977, lng: 110.3462, kecamatan: "Ngaliyan", alamat: "Jl. Wismasari Raya" },
+            { name: "Puskesmas Ngemplak Simongan", lat: -7.0013, lng: 110.3949, kecamatan: "Semarang Barat", alamat: "Jl. Srinindito IV" },
+            { name: "Puskesmas Ngesrep", lat: -7.0463, lng: 110.4179, kecamatan: "Banyumanik", alamat: "Jl. Teuku Umar 271" },
+            { name: "Puskesmas Padangsari", lat: -7.0706, lng: 110.4217, kecamatan: "Banyumanik", alamat: "Jl. Meranti Raya 389" },
+            { name: "Puskesmas Pandanaran", lat: -6.9877, lng: 110.4146, kecamatan: "Semarang Selatan", alamat: "Jl. Pandanaran 79" },
+            { name: "Puskesmas Pegandan", lat: -7.0113, lng: 110.4048, kecamatan: "Gajah Mungkur", alamat: "Jl. Kendeng Barat III/2" },
+            { name: "Puskesmas Poncol", lat: -6.9794, lng: 110.4117, kecamatan: "Semarang Tengah", alamat: "Jl. Imam Bonjol 114" },
+            { name: "Puskesmas Pundakpayung", lat: -7.0969, lng: 110.4097, kecamatan: "Banyumanik", alamat: "Jl. Payungmas Raya" },
+            { name: "Puskesmas Purwoyoso", lat: -7.0151, lng: 110.3550, kecamatan: "Ngaliyan", alamat: "Jl. Siliwangi No 527" },
+            { name: "Puskesmas Rowosari", lat: -7.0606, lng: 110.4810, kecamatan: "Tembalang", alamat: "Jl Prof Soeharso, Rowosari" },
+            { name: "Puskesmas Sekaran", lat: -7.0303, lng: 110.3724, kecamatan: "Gunung Pati", alamat: "Jl. Raya Sekaran" },
+            { name: "Puskesmas Srondol", lat: -7.0589, lng: 110.4141, kecamatan: "Banyumanik", alamat: "Jl. Setiabudi No.209" },
+            { name: "Puskesmas Tambak Aji", lat: -6.9833, lng: 110.3504, kecamatan: "Ngaliyan", alamat: "Jl. Raya Wahsongo" },
+            { name: "Puskesmas Tlogosari Kulon", lat: -6.9808, lng: 110.4575, kecamatan: "Pedurungan", alamat: "Jl. Taman Satrio Manah 2" },
+            { name: "Puskesmas Tlogosari Wetan", lat: -6.9805, lng: 110.4591, kecamatan: "Pedurungan", alamat: "Jl. Soekarno-Hatta" },
+            { name: "Puskesmas Bulusan", lat: -7.053155, lng: 110.456356, kecamatan: "Tembalang", alamat: "Jl. Timoho Raya" },
+            { name: "Puskesmas Plamongansari", lat: -7.024000610502623, lng: 110.48689731091548, kecamatan: "Pedurungan", alamat: "Jl. Plamongansari V No.57" }
+        ];
+        console.log("Kecamatan dari GeoJSON:", feature.properties.name);
+
+        // Initialize map
+        const map = L.map('map').setView([-7.0051, 110.4381], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+
+const markers = L.markerClusterGroup(); // Pindahkan deklarasi di luar fetch
+
+fetch('https://gist.githubusercontent.com/lintangtimur/43059dd4b146cbe7bd366cfb4b7fc783/raw/semarang_boundary.geojson')
+    .then(response => response.json())
+    .then(data => {
+        L.geoJSON(data, {
+            style: () => ({
+                fillColor: getRandomColor(),
+                weight: 2, color: 'white', fillOpacity: 0.5
+            }),
+            onEachFeature: (feature, layer) => {
+                console.log("Kecamatan dari GeoJSON:", feature.properties.name);
+                layer.bindPopup(`<b>${feature.properties.name}</b><br>Jumlah Puskesmas: ${countPuskesmasInKecamatan(feature.properties.name)}`);
             }
-        };
+        }).addTo(map);
 
-        // Add debug logging
-        console.log('Chart Data:', chartData);
-
-        function getColorForValue(value) {
-            if (value >= 80) return 'rgba(40, 167, 69, 0.8)';
-            if (value >= 60) return 'rgba(255, 193, 7, 0.8)';
-            return 'rgba(220, 53, 69, 0.8)';
-        }
-
-        function createChart(type) {
-            try {
-                const ctx = document.getElementById('dashboardChart').getContext('2d');
-                const data = chartData[type];
-
-                // Validate data
-                if (!Array.isArray(data.data)) {
-                    console.error('Invalid data format:', data);
-                    throw new Error('Data is not an array');
-                }
-
-                if (currentChart) {
-                    currentChart.destroy();
-                }
-
-                // Create background colors array
-                const backgroundColor = type === 'satisfaction' 
-                    ? data.data.map(value => getColorForValue(value))
-                    : Array(data.data.length).fill('rgba(13, 110, 253, 0.8)');
-
-                currentChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: data.title,
-                            data: data.data,
-                            backgroundColor: backgroundColor,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return type === 'satisfaction' ? value + '%' : value;
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: data.title
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Chart creation error:', error);
-                document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('errorMessage').classList.remove('d-none');
-            }
-        }
-
-        // Initialize with satisfaction chart
-        createChart('satisfaction');
-
-        // Handle chart type buttons
-        document.querySelectorAll('.chart-type-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.chart-type-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-                createChart(this.dataset.type);
-            });
+        puskesmasData.forEach(pus => {
+            const marker = L.marker([pus.lat, pus.lng])
+                .bindPopup(`<b>${pus.name}</b><br>Kecamatan: ${pus.kecamatan}<br>Alamat: ${pus.alamat}`);
+            markers.addLayer(marker);
         });
+
+        map.addLayer(markers);
     });
+
+// Pastikan fitur tambahan dimuat setelah Leaflet di-import
+const searchControl = new L.Control.Search({
+    position: 'topright',
+    layer: markers,
+    propertyName: 'name',
+    marker: false,
+    moveToLocation: function(latlng) { map.setView(latlng, 16); }
+});
+map.addControl(searchControl);
+
+L.control.locate({ position: 'topright', strings: { title: "Tampilkan lokasi saya" } }).addTo(map);
+
     </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
